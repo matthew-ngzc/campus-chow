@@ -1,0 +1,582 @@
+_format_version: "3.0"
+
+# ===========================
+# SERVICES (Backend Microservices)
+# ===========================
+
+services:
+  # Merchant Service Definition
+  - name: merchant-service
+    url: http://merchant-service:8082
+    connect_timeout: 60000
+    write_timeout: 60000
+    read_timeout: 60000
+
+  # Menu Service Definition
+  - name: menu-service
+    url: http://menu-service:8083
+    connect_timeout: 60000
+    write_timeout: 60000
+    read_timeout: 60000
+
+  #Order Service Definition
+  - name: order-service
+    url: http://order-service:8084
+    connect_timeout: 60000
+    write_timeout: 60000
+    read_timeout: 60000
+
+  # Payment Service Definition
+  - name: payment-service
+    url: http://payment-service:8085
+    connect_timeout: 60000
+    write_timeout: 60000
+    read_timeout: 60000
+
+  # Admin Service Definition
+  - name: admin-service
+    url: http://admin-service:8086
+    connect_timeout: 60000
+    write_timeout: 60000
+    read_timeout: 60000
+
+  # User Service Definition
+  - name: user-service
+    url: http://user-service:8087
+    connect_timeout: 60000
+    write_timeout: 60000
+    read_timeout: 60000
+
+  # Runner Service Definition
+  - name: runner-service
+    url: http://runner-service:8088
+    connect_timeout: 60000
+    write_timeout: 60000
+    read_timeout: 60000
+
+# ===========================
+# ROUTES (API Gateway Endpoints)
+# ===========================
+
+routes:
+  # Merchant Routes
+  - name: get-all-merchants
+    service: merchant-service
+    paths:
+      - ~/api/merchants$
+    methods:
+      - GET
+    strip_path: false
+
+  - name: get-merchant-by-id
+    service: merchant-service
+    paths:
+      - ~/api/merchants/(?<id>[0-9]+)$
+    methods:
+      - GET
+      - OPTIONS
+    strip_path: false
+
+  - name: create-merchant
+    service: merchant-service
+    paths:
+      - ~/api/merchants$
+    methods:
+      - POST
+    strip_path: false
+
+  - name: update-merchant
+    service: merchant-service
+    paths:
+      - ~/api/merchants/(?<id>[0-9]+)$
+    methods:
+      - PATCH
+    strip_path: false
+
+  # Menu Routes
+  - name: get-menu-by-merchant
+    service: menu-service
+    paths:
+      - ~/api/merchants/(?<merchantId>[0-9]+)/menu$
+    methods:
+      - GET
+      - OPTIONS
+    strip_path: false
+
+  - name: create-menu-item
+    service: menu-service
+    paths:
+      - ~/api/merchants/(?<merchantId>[0-9]+)/menu$
+    methods:
+      - POST
+      - OPTIONS
+    strip_path: false
+
+  - name: update-menu-item
+    service: menu-service
+    paths:
+      - ~/api/merchants/(?<merchantId>[0-9]+)/menu/(?<menuItemId>[0-9]+)$
+    methods:
+      - PUT
+      - OPTIONS
+    strip_path: false
+
+  - name: get-menu-items-by-ids
+    service: menu-service
+    paths:
+      - ~/api/merchants/(?<merchantId>[0-9]+)/menu/items$
+    methods:
+      - POST
+    strip_path: false
+
+    # Order Routes
+  - name: create-order
+    service: order-service
+    paths:
+      - ~/api/orders$
+    methods:
+      - POST
+      - OPTIONS
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: "iss"
+          claims_to_verify:
+            - exp
+          run_on_preflight: false
+    
+
+  - name: update-order-status
+    service: order-service
+    paths:
+      - ~/api/orders/(?<orderId>[0-9]+)/order-status$
+    methods:
+      - PUT
+      - OPTIONS
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: "iss"
+          claims_to_verify:
+            - exp
+          run_on_preflight: false
+
+  - name: get-order-status
+    service: order-service
+    paths:
+      - ~/api/orders/(?<orderId>[0-9]+)/order-status$
+    methods:
+      - GET
+      - OPTIONS
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: "iss"
+          claims_to_verify:
+            - exp
+          run_on_preflight: false
+  
+  - name: get-orders
+    service: order-service
+    paths:
+      - ~/api/orders/user/(?<userId>[0-9]+)$
+    methods:
+      - GET
+      - OPTIONS
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: "iss"
+          claims_to_verify:
+            - exp
+          run_on_preflight: false
+
+  - name: order-health
+    service: order-service
+    paths:
+      - ~/health$
+    methods:
+      - GET
+      - OPTIONS
+    strip_path: false
+
+
+    # Payment Routes
+  - name: payment-health
+    service: payment-service
+    paths:
+      - ~/health$
+    methods:
+      - GET
+      - OPTIONS
+    strip_path: false
+
+  - name: create-payment
+    service: payment-service
+    paths:
+      - ~/api/payments$
+    methods:
+      - POST
+      - OPTIONS
+    strip_path: false
+
+  - name: get-payment-by-orderid
+    service: payment-service
+    paths:
+      - ~/api/payments/(?<orderId>[0-9]+)$
+    methods:
+      - GET
+      - OPTIONS
+    strip_path: false
+
+  - name: update-payment-status
+    service: payment-service
+    paths:
+      - ~/api/payments/(?<orderId>[0-9]+)/payment-status$
+    methods:
+      - PATCH
+      - OPTIONS
+    strip_path: false
+
+  - name: get-payment-status
+    service: payment-service
+    paths:
+      - ~/api/payments/(?<orderId>[0-9]+)/payment-status$
+    methods:
+      - GET
+      - OPTIONS
+    strip_path: false
+
+  - name: confirm-payment-manual
+    service: payment-service
+    paths:
+      - ~/api/payments/(?<orderId>[0-9]+)/confirm-manual$
+    methods:
+      - PATCH
+      - OPTIONS
+    strip_path: false
+
+  - name: upload-payment-screenshot
+    service: payment-service
+    paths:
+      - ~/api/payments/(?<orderId>[0-9]+)/screenshot$
+    methods:
+      - PATCH
+      - OPTIONS
+    strip_path: false
+
+      # === Internal Admin Payment Routes ===
+  - name: list-pending-payments
+    service: payment-service
+    paths:
+      - ~/api/payments/internal/pending$
+    methods:
+      - GET
+      - OPTIONS
+    strip_path: false
+
+  - name: list-pending-refunds
+    service: payment-service
+    paths:
+      - ~/api/payments/internal/pending-refunds$
+    methods:
+      - GET
+      - OPTIONS
+    strip_path: false
+
+  - name: mark-orders-refunded
+    service: payment-service
+    paths:
+      - ~/api/payments/internal/mark-refunded$
+    methods:
+      - POST
+      - OPTIONS
+    strip_path: false
+
+  - name: mark-orders-verified
+    service: payment-service
+    paths:
+      - ~/api/payments/internal/mark-verified$
+    methods:
+      - POST
+      - OPTIONS
+    strip_path: false
+
+    # Runner Routes
+  - name: set-availability
+    service: runner-service
+    paths:
+      - "~/api/runners/availability$"
+    methods:
+      - POST
+      - OPTIONS
+    strip_path: false
+
+  - name: add-availability
+    service: runner-service
+    paths:
+      - "~/api/runners/availability/add$"
+    methods:
+      - PATCH
+      - OPTIONS
+    strip_path: false
+
+  - name: remove-availability
+    service: runner-service
+    paths:
+      - "~/api/runners/availability/remove$"
+    methods:
+      - PATCH
+      - OPTIONS
+    strip_path: false
+
+  - name: get-availability-by-date
+    service: runner-service
+    paths:
+      - "~/api/runners/availability/(?<date>[0-9]{4}-[0-9]{2}-[0-9]{2})$"
+    methods:
+      - GET
+      - OPTIONS
+    strip_path: false
+
+  - name: get-all-available-runners
+    service: runner-service
+    paths:
+      - "~/api/runners/availability/available/(?<date>[0-9]+)/(?<timeslot>[A-Z_0-9]+)$"
+    methods:
+      - GET
+    strip_path: false
+
+  - name: get-my-assigned-orders
+    service: runner-service
+    paths:
+      - "~/api/runners/assign/my-orders$"
+    methods:
+      - GET
+      - OPTIONS
+    strip_path: false
+
+  # Admin Routes
+  - name: admin-preflight
+    service: admin-service
+    paths:
+      - "~/api/admin/"
+    methods:
+      - OPTIONS
+    strip_path: false
+
+  - name: admin-health-check
+    service: admin-service
+    paths:
+      - ~/api/admin/health
+    methods:
+      - GET
+    strip_path: false
+
+  - name: admin-register
+    service: admin-service
+    paths:
+      - ~/api/admin/auth/register
+    methods:
+      - POST
+      - OPTIONS
+    strip_path: false
+
+  - name: admin-login
+    service: admin-service
+    paths:
+      - ~/api/admin/auth/login$
+    methods:
+      - POST
+      - OPTIONS
+    strip_path: false
+
+  - name: admin-protected
+    service: admin-service
+    paths:
+      - "/api/admin"
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    strip_path: false
+    protocols: ["http", "https"]
+    plugins:
+    - name: jwt
+      config:
+        key_claim_name: "iss"
+        claims_to_verify: ["exp"]
+        run_on_preflight: false
+
+  # User Routes OPEN routes (no jwt)
+  - name: user-health-check
+    service: user-service
+    paths:
+      - ~/api/user/health
+    methods:
+      - GET
+    strip_path: false
+
+  - name: user-register
+    service: user-service
+    paths:
+      - ~/api/user/auth/register
+    methods:
+      - POST
+      - OPTIONS
+    strip_path: false
+
+  - name: user-login
+    service: user-service
+    paths:
+      - ~/api/user/auth/login$
+    methods:
+      - POST
+      - OPTIONS
+    strip_path: false
+
+  - name: user-uploads
+    service: user-service
+    paths:
+      - /uploads          # prefix: matches /uploads and anything under it
+    methods:
+      - GET
+      - HEAD
+      - OPTIONS
+    strip_path: false
+
+  - name: get-user-by-email
+    service: user-service
+    paths:
+      - /api/user/      
+    methods:
+      - GET
+      - OPTIONS
+    strip_path: false
+    plugins:
+      - name: jwt
+
+  # --- USER PROTECTED (JWT) ---
+  - name: user-protected
+    service: user-service
+    paths:
+      - "/api/users" # prefix → /api/users, /api/users/1, /api/users/me
+    # to eliminate method-related 404 while testing, allow common methods now
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    strip_path: false
+    protocols: ["http", "https"]
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: "iss"
+          claims_to_verify: ["exp"]
+          run_on_preflight: false   #allow OPTIONS through for CORS
+    
+  # --- ADMIN MANAGE USER ---
+  - name: mgmt-list-users
+    service: user-service
+    paths:
+      - "~/api/user/management$"
+    methods:
+      - GET
+      - OPTIONS
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: "iss"
+          claims_to_verify:
+            - exp
+          run_on_preflight: false
+
+  - name: mgmt-update-user
+    service: user-service
+    paths:
+      - "~/api/user/management/(?<id>[0-9]+)$"
+    methods:
+      - PATCH
+      - OPTIONS
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: "iss"
+          claims_to_verify:
+            - exp
+          run_on_preflight: false
+
+  - name: mgmt-delete-user
+    service: user-service
+    paths:
+      - "~/api/user/management/(?<id>[0-9]+)$"
+    methods:
+      - DELETE
+      - OPTIONS
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          key_claim_name: "iss"
+          claims_to_verify:
+            - exp
+          run_on_preflight: false
+# ===========================
+# PLUGINS (Global - Applied to All Routes)
+# ===========================
+
+plugins:
+  # CORS - Allow frontend to access API
+  - name: cors
+    config:
+      origins:
+        - "http://localhost:5173"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      headers:
+        - Accept
+        - Accept-Version
+        - Content-Length
+        - Content-MD5
+        - Content-Type
+        - Date
+        - Authorization
+        - X-Requested-With
+      exposed_headers:
+        - X-Auth-Token
+      credentials: true
+      max_age: 3600
+      preflight_continue: false
+
+  # Rate Limiting - Prevent abuse (100 requests per minute)
+  - name: rate-limiting
+    config:
+      minute: 100
+      policy: local
+
+consumers:
+  - username: webapp
+
+jwt_secrets:
+  - consumer: webapp
+    algorithm: HS256
+    key: auth-service
+    secret: dev-secret-change-me-1234567890-abcdef #temporary secret for development
+# ===========================
+# FUTURE ENHANCEMENTS
+# ===========================
+#
+# When you add authentication, you can add JWT plugin:
+#
+# - name: jwt
+#   config:
+#     claims_to_verify:
+#       - exp
+#     key_claim_name: iss
+#
+# Then add it to specific routes that need authentication

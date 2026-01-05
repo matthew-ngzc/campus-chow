@@ -1,0 +1,106 @@
+# User service (Node 20 + Vitest + Postgres + Docker)
+image: node:20
+
+stages:
+  - build
+  - test
+  - docker
+
+variables:
+  # Speed up npm installs
+  NPM_CONFIG_FUND: "false"
+  NPM_CONFIG_AUDIT: "false"
+  # Docker-in-Docker for image build
+  DOCKER_HOST: "tcp://docker:2375"
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_DRIVER: overlay2
+  DOCKER_BUILDKIT: "1"
+  # Registry tags
+  IMAGE_NAME: $CI_REGISTRY_IMAGE
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
+
+cache:
+  key:
+    files:
+      - package-lock.json
+  paths:
+    - .npm/_cacache
+
+# ---------- Build (install deps, basic sanity) ----------
+build:
+  stage: build
+  script:
+    - echo "Installing deps…"
+    - npm ci --cache .npm/_cacache --prefer-offline
+    - node -v && npm -v
+  artifacts:
+    paths:
+      - node_modules/
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+
+# ---------- Test (Vitest + Postgres service) ----------
+test:
+  stage: test
+  services:
+    - name: postgres:15-alpine
+      alias: postgres
+  variables:
+    # Postgres container env
+    POSTGRES_PASSWORD: postgres
+    POSTGRES_DB: postgres
+  script:
+    - echo "Preparing test env (.env.test for CI)…"
+    - |
+      cat > .env.test <<'EOF'
+      PORT=0
+      NODE_ENV=test
+
+      JWT_SECRET=test-secret-please-change
+      JWT_ISSUER=auth-service
+      JWT_EXPIRES=1h
+
+      # Point tests at CI Postgres service
+      DB_HOST=postgres
+      DB_PORT=5432
+      DB_USER=postgres
+      DB_PASS=postgres
+      DB_NAME=smunch_user_test
+
+      # RabbitMQ not required (controller try/catch), keep placeholders
+      RABBITMQ_HOST=localhost
+      RABBITMQ_PORT=5672
+      RABBITMQ_USERNAME=guest
+      RABBITMQ_PASSWORD=guest
+      EOF
+    - echo "Installing deps…"
+    - npm ci --cache .npm/_cacache --prefer-offline
+    - echo "Running tests…"
+    - npm test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+# ---------- Build & Push Docker Image ----------
+docker-build-push:
+  stage: docker
+  image: docker:27
+  services:
+    - name: docker:27-dind
+      command: ["--tls=false"]
+  before_script:
+    - echo "Logging into GitLab Container Registry…"
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - echo "Building Docker image…"
+    - docker build --pull -t "$IMAGE_TAG" -t "$IMAGE_LATEST" .
+    - echo "Pushing…"
+    - docker push "$IMAGE_TAG"
+    - docker push "$IMAGE_LATEST"
+    - echo "Done!"
+  needs: ["test"]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+

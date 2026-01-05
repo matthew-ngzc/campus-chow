@@ -1,0 +1,16 @@
+# ===== Dependencies =====
+FROM node:20 AS deps
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production --no-audit --no-fund
+
+# ===== Runtime =====
+FROM node:20-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+EXPOSE 8084
+CMD ["npm", "start"]

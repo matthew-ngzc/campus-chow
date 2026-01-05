@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+  user-postgres:
+    image: postgres:15-alpine
+    container_name: user-postgres
+    environment:
+      POSTGRES_DB: smunch_user
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5437:5432"
+    volumes:
+      - user_pgdata:/var/lib/postgresql/data
+    networks:
+      - smunch-network
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U postgres -d smunch_user"]
+
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: user-service
+    environment:
+      PORT: 8087
+      JWT_SECRET: dev-secret-change-me-1234567890-abcdef
+      JWT_ISSUER: auth-service
+      JWT_EXPIRES: 1d
+      DB_HOST: user-postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASS: password
+      DB_NAME: smunch_user
+      NODE_ENV: production
+      RABBITMQ_HOST: rabbitmq       
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: smunch
+      RABBITMQ_PASSWORD: smunch
+    depends_on:
+      user-postgres:
+        condition: service_healthy
+    ports:
+      - "8087:8087"
+    networks:
+      - smunch-network
+    restart: unless-stopped
+    volumes:
+      # bind-mount uploads so avatars persist across rebuilds/restarts
+      - ./src/uploads:/app/src/uploads
+
+volumes:
+  user_pgdata:
+
+
+networks:
+  smunch-network:
+    external: true
+    name: smunch-network

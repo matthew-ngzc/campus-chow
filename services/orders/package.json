@@ -1,0 +1,65 @@
+{
+  "name": "orders",
+  "version": "1.0.0",
+  "description": "orders service",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "lint": "eslint src --ext .js",
+    "lint:fix": "eslint src --ext .js --fix",
+    "test": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --detectOpenHandles",
+    "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/unit --coverage",
+    "test:integration": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js tests/integration --runInBand",
+    "ci:test": "npm run lint && npm run test:unit && npm run test:integration"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {},
+    "setupFiles": [
+      "<rootDir>/tests/setup/test.env.js"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/tests/setup/jest.setup.js"
+    ],
+    "verbose": true,
+    "collectCoverageFrom": [
+      "src/**/*.js"
+    ],
+    "testMatch": [
+      "**/tests/unit/**/*.test.js"
+    ]
+  },
+  "dependencies": {
+    "amqplib": "^0.10.9",
+    "axios": "^1.12.2",
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.18",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "joi": "^18.0.1",
+    "joi-to-swagger": "^6.2.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.1",
+    "node-cron": "^4.2.1",
+    "pg": "^8.16.3",
+    "sequelize": "^6.37.7",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "^7.28.5",
+    "amqplib-mocks": "^1.3.0",
+    "cross-env": "^10.1.0",
+    "eslint": "^9.39.1",
+    "jest": "^30.2.0",
+    "jest-environment-node": "^30.2.0",
+    "nodemon": "^3.1.11",
+    "prettier": "^3.6.2",
+    "supertest": "^7.1.4"
+  }
+}

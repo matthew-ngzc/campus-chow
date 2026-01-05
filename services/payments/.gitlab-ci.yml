@@ -1,0 +1,79 @@
+stages:
+  - static analysis
+  - test
+  - release
+
+# 🧹 STATIC ANALYSIS (Linting)
+lint:
+  stage: static analysis
+  image: node:20
+  script:
+    - npm ci
+    - npm run lint
+  cache:
+    key: npm-cache
+    paths:
+      - node_modules/
+  artifacts:
+    when: always
+    reports:
+      junit: lint-report.xml
+    expire_in: 1 day
+  allow_failure: false
+
+# 🧪 UNIT TESTS
+unit-tests:
+  stage: test
+  image: node:20
+  script:
+    - npm ci
+    - npm run test:unit
+  cache:
+    key: npm-cache
+    paths:
+      - node_modules/
+  artifacts:
+    when: always
+    reports:
+      junit: unit-tests.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+    expire_in: 1 week
+  allow_failure: false
+
+# 🔬 INTEGRATION TESTS (Commented for now — enable later)
+# integration-tests:
+#   stage: test
+#   image: node:20
+#   script:
+#     - npm ci
+#     - npm run test:integration
+#   cache:
+#     key: npm-cache
+#     paths:
+#       - node_modules/
+#   artifacts:
+#     when: always
+#     reports:
+#       junit: integration-tests.xml
+#     expire_in: 1 week
+#   allow_failure: true
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "main"'
+
+# 🚀 RELEASE STAGE (build & push image)
+release-image:
+  stage: release
+  image: docker:28.3.2
+  services:
+    - docker:28.3.2-dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+  script:
+    - docker build --pull -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" .
+    - docker tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" "$CI_REGISTRY_IMAGE:latest"
+    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+    - docker push "$CI_REGISTRY_IMAGE:latest"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'

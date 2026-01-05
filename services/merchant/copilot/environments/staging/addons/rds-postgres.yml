@@ -1,0 +1,43 @@
+Parameters:
+  App:
+    Type: String
+  Env:
+    Type: String
+
+Resources:
+  Database:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBName: merchant
+      DBInstanceIdentifier: !Sub ${App}-${Env}-db
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: 20
+      Engine: postgres
+      EngineVersion: '15'
+      MasterUsername: postgres
+      MasterUserPassword: password
+      PubliclyAccessible: false
+      BackupRetentionPeriod: 0
+      DeletionProtection: false
+      VPCSecurityGroups:
+        - !GetAtt DatabaseSecurityGroup.GroupId
+
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for RDS
+      VpcId:
+        Fn::ImportValue: !Sub ${App}-${Env}-VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId:
+            Fn::ImportValue: !Sub ${App}-${Env}-EnvironmentSecurityGroup
+
+Outputs:
+  DatabaseEndpoint:
+    Description: Database endpoint
+    Value: !GetAtt Database.Endpoint.Address
+    Export:
+      Name: !Sub ${App}-${Env}-DatabaseEndpoint

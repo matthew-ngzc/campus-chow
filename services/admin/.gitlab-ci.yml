@@ -1,0 +1,84 @@
+image: maven:3.9.6-eclipse-temurin-17
+
+stages:
+  - build
+  - test
+  - docker
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+  DOCKER_DRIVER: overlay2
+
+  # docker registry tags
+  IMAGE_NAME: $CI_REGISTRY_IMAGE
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
+
+  # for DinD
+  DOCKER_HOST: "tcp://docker:2375"
+  DOCKER_TLS_CERTDIR: ""
+
+  # testcontainers QoL (faster + more reliable in CI)
+  TESTCONTAINERS_CHECKS_DISABLE: "true"
+
+cache:
+  key: m2-cache
+  paths:
+    - .m2/repository
+
+# ---------- Build Stage ----------
+build:
+  stage: build
+  script:
+    - echo " Building Admin Service..."
+    - mvn -B -DskipTests clean compile
+  artifacts:
+    paths:
+      - target/
+  only:
+    - main
+    - merge_requests
+
+# ---------- Test Stage (uses DinD so Testcontainers can run) ----------
+test:
+  stage: test
+  image: maven:3.9.6-eclipse-temurin-17
+  services:
+    - name: docker:27-dind
+      command: ["--tls=false"]
+  script:
+    - echo " Running tests with Testcontainers..."
+    # run unit + integration tests; show more logs if needed with -X
+    - mvn -B verify
+  artifacts:
+    reports:
+      junit:
+        - target/surefire-reports/*.xml
+        - target/failsafe-reports/*.xml
+    paths:
+      - target/surefire-reports/
+      - target/failsafe-reports/
+  only:
+    - branches
+    - merge_requests
+
+# ---------- Build & Push Docker Image ----------
+docker-build-push:
+  stage: docker
+  image: docker:27
+  services:
+    - name: docker:27-dind
+      command: ["--tls=false"]
+  before_script:
+    - echo "Logging into GitLab Container Registry..."
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - echo "Building Docker image..."
+    - docker build -t "$IMAGE_TAG" -t "$IMAGE_LATEST" .
+    - echo "Pushing Docker images..."
+    - docker push "$IMAGE_TAG"
+    - docker push "$IMAGE_LATEST"
+    - echo "Docker images pushed successfully!"
+  needs: ["build", "test"]
+  only:
+    - main

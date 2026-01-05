@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+    <body style="font-family: Arial, sans-serif; color: #333;">
+        <div style="max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 10px; padding: 20px;">
+            <div style="text-align: center;">
+                <img src="https://ik.imagekit.io/campuschow/Campus%20Chow.png?updatedAt=1762239445198" alt="campuschow Logo" width="120" />
+            </div>
+
+            <h2> 🚨 Just a reminder! </h2>
+
+            <p> Hey Smunchie, </p>
+
+            <p> We noticed you started an order but haven't completed payment yet. </p>
+
+            <p><strong>Order ID:</strong> <span th:text="${orderId}"></span></p>
+            <p><strong>Building:</strong> <span th:text="${building}"></span></p>
+            <p><strong>Room:</strong> <span th:text="${roomType}"></span></p>
+            <p><strong>Room number:</strong> <span th:text="${roomNumber}"></span></p>
+            <p><strong>Scheduled For:</strong> <span th:text="${deliveryTime}"></span></p>
+            <p><strong>Payment Deadline:</strong> <span th:text="${paymentDeadlineTime}"></span></p>
+
+            <p>
+                To make sure your order gets included in tomorrow's batch, please complete payment soon.
+            </p>
+
+            <p> Regards,<br> The Campus Chow Team 💙 </p>
+
+            <hr />
+            <small>Made for SMU students, by SMU students.</small>
+        </div>
+    </body>
+</html>

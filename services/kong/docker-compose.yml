@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  # ===========================
+  # KONG API GATEWAY
+  # ===========================
+  kong:
+    image: kong:3.4
+    container_name: kong-gateway
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /kong/kong.yml
+      KONG_PROXY_LISTEN: 0.0.0.0:8000
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_LOG_LEVEL: info
+    ports:
+      - "8000:8000"  # API Gateway - Frontend uses this port
+      - "8001:8001"  # Kong Admin API (for management)
+    volumes:
+      - ./kong.yml:/kong/kong.yml:ro
+    networks:
+      - smunch-network
+    restart: unless-stopped
+
+# ===========================
+# EXTERNAL NETWORK
+# This network is shared with merchant-service and menu-service
+# ===========================
+networks:
+  smunch-network:
+    external: true
+    name: smunch-network

@@ -1,0 +1,30 @@
+version: '3.8'
+
+volumes:
+  rabbitmq_data:
+
+services:
+  rabbitmq:
+      image: rabbitmq:3-management
+      container_name: rabbitmq
+      restart: always
+      ports:
+        - "5672:5672"    
+        - "15672:15672"   
+      environment:
+        RABBITMQ_DEFAULT_USER: smunch
+        RABBITMQ_DEFAULT_PASS: smunch   
+      volumes: 
+        - rabbitmq_data:/var/lib/rabbitmq 
+      networks:
+      - smunch-network  
+      healthcheck:
+        test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+
+
+networks:
+  smunch-network:
+    external: true

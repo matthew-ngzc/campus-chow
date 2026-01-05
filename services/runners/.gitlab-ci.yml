@@ -1,0 +1,81 @@
+image: maven:3.9.6-eclipse-temurin-17
+stages:
+  - build
+  - test
+  - docker
+  - deploy
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+  DOCKER_DRIVER: overlay2
+
+  IMAGE_NAME: $CI_REGISTRY_IMAGE
+  DEPLOY_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
+
+cache:
+  paths:
+    - .m2/repository
+
+# Build Stage
+build:
+  stage: build
+  script:
+    - echo " Building Runner Service..."
+    - mvn clean compile
+  artifacts:
+    paths:
+      - target/
+  only:
+    - main
+    - merge_requests
+
+# Test Stage
+test:
+  stage: test
+  image: maven:3.9.6-eclipse-temurin-17
+  services:
+    - postgres:15-alpine
+  variables:
+    POSTGRES_DB: runner_test
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: $DB_PASSWORD
+    SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/runner_test
+  script:
+    - echo " Running integration tests..."
+    - mvn verify -Dspring.profiles.active=test
+  artifacts:
+    reports:
+      junit: target/surefire-reports/*.xml
+
+#Build and push
+docker-build-push:
+  stage: docker
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - echo "Logging into GitLab Container Registry..."
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - echo "Building Docker image..."
+    - docker build -t $DEPLOY_IMAGE -t $IMAGE_LATEST .
+    - echo "Pushing Docker images..."
+    - docker push $DEPLOY_IMAGE
+    - docker push $IMAGE_LATEST
+    - echo "Docker images pushed successfully!"
+  only:
+    - main
+
+deploy:
+  stage: deploy
+  image: alpine/k8s:1.30.2
+  needs: ["docker-build-push"]
+  script:
+    - mkdir -p ~/.kube
+    - echo "$KUBE_CONFIG" > ~/.kube/config
+    - sed "s|\$CI_IMAGE|$DEPLOY_IMAGE|g" k8s/deployment.yaml > deployment-rendered.yaml
+    - kubectl apply -f deployment-rendered.yaml
+    - kubectl apply -f k8s/service.yaml
+  only:
+    - main

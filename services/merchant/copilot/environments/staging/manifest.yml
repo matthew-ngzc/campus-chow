@@ -1,0 +1,7 @@
+name: staging
+type: Environment
+network:
+  vpc:
+    enable_nat: true
+  count:
+    subnets: 4

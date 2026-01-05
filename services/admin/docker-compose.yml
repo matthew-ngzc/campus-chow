@@ -1,0 +1,48 @@
+version: "3.8"
+
+services:
+  admin-postgres:
+    image: postgres:15-alpine
+    container_name: admin-postgres
+    environment:
+      POSTGRES_DB: smunch_admin
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5436:5432"
+    volumes:
+      - admin_pgdata:/var/lib/postgresql/data
+    networks:
+      - smunch-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d smunch_admin"]
+
+  admin-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: admin-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://admin-postgres:5432/smunch_admin
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT: 8086
+      JWT_SECRET: dev-secret-change-me-1234567890-abcdef
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      admin-postgres:
+        condition: service_healthy
+    ports:
+      - "8086:8086"
+    networks:
+      - smunch-network
+    restart: unless-stopped
+
+volumes:
+  admin_pgdata:
+
+networks:
+  smunch-network:
+    external: true
+    name: smunch-network

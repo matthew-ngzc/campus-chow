@@ -1,0 +1,245 @@
+# GitLab CI/CD Pipeline for Menu Service with DevSecOps Security Checks
+# https://gitlab.com/cs302-2025/g4-team2/services/menu
+
+stages:
+  - build
+  - security
+  - test
+  - package
+  - scan
+  - push
+
+variables:
+  # Maven settings
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version"
+  
+  # Docker settings
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  
+  # Image naming
+  IMAGE_NAME: $CI_REGISTRY_IMAGE
+  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+  IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
+
+# Cache Maven dependencies for faster builds
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .m2/repository/
+    - target/
+
+# Build Stage - Compile the application
+build:
+  stage: build
+  image: maven:3.9.6-eclipse-temurin-17-alpine
+  script:
+    - echo "Building Menu Service..."
+    - mvn $MAVEN_CLI_OPTS clean compile
+  artifacts:
+    paths:
+      - target/
+    expire_in: 1 hour
+  only:
+    - branches
+    - merge_requests
+    - tags
+
+# ===========================================
+# SECURITY STAGE - DevSecOps Security Checks
+# ===========================================
+
+# Dependency Vulnerability Scanning
+dependency-check:
+  stage: security
+  image: maven:3.9.6-eclipse-temurin-17-alpine
+  script:
+    - echo "Running OWASP Dependency Check..."
+    - mvn $MAVEN_CLI_OPTS org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=7
+  artifacts:
+    when: always
+    paths:
+      - target/dependency-check-report.html
+    expire_in: 1 week
+  allow_failure: true  # Don't fail the pipeline, just report
+  only:
+    - branches
+    - merge_requests
+    - tags
+
+# Static Code Analysis - Security Issues
+sast-spotbugs:
+  stage: security
+  image: maven:3.9.6-eclipse-temurin-17-alpine
+  script:
+    - echo "Running SpotBugs security analysis..."
+    - mvn $MAVEN_CLI_OPTS compile spotbugs:check
+  artifacts:
+    when: always
+    paths:
+      - target/spotbugsXml.xml
+    expire_in: 1 week
+  allow_failure: true  # Don't fail the pipeline, just report
+  only:
+    - branches
+    - merge_requests
+    - tags
+
+# Secret Detection - Check for hardcoded secrets
+secret-detection:
+  stage: security
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache git grep
+  script:
+    - echo "Scanning for potential secrets..."
+    - |
+      # Check for common secret patterns
+      echo "Checking for potential hardcoded passwords..."
+      ! grep -r -i "password.*=.*['\"].*['\"]" src/ --include="*.java" --include="*.properties" --include="*.yml" || echo "Warning: Found potential hardcoded passwords"
+      
+      echo "Checking for potential API keys..."
+      ! grep -r -E "(api[_-]?key|apikey|access[_-]?key)" src/ --include="*.java" --include="*.properties" || echo "Warning: Found potential API keys"
+      
+      echo "Checking for AWS credentials..."
+      ! grep -r -E "(aws[_-]?access|aws[_-]?secret)" . --include="*.properties" --include="*.yml" || echo "Warning: Found potential AWS credentials"
+      
+      echo "Secret detection scan completed!"
+  allow_failure: true
+  only:
+    - branches
+    - merge_requests
+    - tags
+
+# Test Stage - Run unit and integration tests
+test:
+  stage: test
+  image: maven:3.9.6-eclipse-temurin-17-alpine
+  services:
+    - name: docker:24-dind
+      alias: docker
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+    TESTCONTAINERS_HOST_OVERRIDE: docker
+    TESTCONTAINERS_RYUK_DISABLED: "true"
+  before_script:
+    - echo "Preparing test environment..."
+    - apk add --no-cache docker-cli
+    - until docker info; do echo "Waiting for Docker..."; sleep 1; done
+    - echo "Docker is ready!"
+  script:
+    - echo "Running tests..."
+    - mvn $MAVEN_CLI_OPTS test
+  artifacts:
+    when: always
+    reports:
+      junit:
+        - target/surefire-reports/TEST-*.xml
+    paths:
+      - target/surefire-reports/
+    expire_in: 1 week
+  coverage: '/Total.*?([0-9]{1,3})%/'
+  only:
+    - branches
+    - merge_requests
+    - tags
+
+# Package Stage - Build Docker image
+package:
+  stage: package
+  image: docker:24
+  services:
+    - docker:24-dind
+  before_script:
+    - echo "Preparing Docker build..."
+    - docker info
+  script:
+    - echo "Building Docker image..."
+    - docker build -t $IMAGE_NAME:$IMAGE_TAG -t $IMAGE_NAME:latest .
+    - echo "Docker image built successfully!"
+    - docker images
+  only:
+    - branches
+    - merge_requests
+    - tags
+
+# ===========================================
+# SCAN STAGE - Container Security Scanning
+# ===========================================
+
+# Container Image Vulnerability Scanning with Trivy
+trivy-scan:
+  stage: scan
+  image: docker:24
+  services:
+    - docker:24-dind
+  before_script:
+    - apk add --no-cache curl
+    - export TRIVY_VERSION=$(curl -s "https://api.github.com/repos/aquasecurity/trivy/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+    - echo "Installing Trivy version $TRIVY_VERSION..."
+    - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+  script:
+    - echo "Rebuilding image for scanning..."
+    - docker build -t $IMAGE_NAME:$IMAGE_TAG .
+    - echo "Scanning Docker image for vulnerabilities..."
+    - trivy image --exit-code 0 --severity HIGH,CRITICAL --format table $IMAGE_NAME:$IMAGE_TAG
+    - echo "Generating detailed report..."
+    - trivy image --exit-code 0 --severity HIGH,CRITICAL --format json --output trivy-report.json $IMAGE_NAME:$IMAGE_TAG
+  artifacts:
+    when: always
+    paths:
+      - trivy-report.json
+    expire_in: 1 week
+  allow_failure: true  # Don't fail the pipeline, just report
+  only:
+    - branches
+    - merge_requests
+    - tags
+
+# Push Stage - Push Docker image to GitLab Container Registry
+push:
+  stage: push
+  image: docker:24
+  services:
+    - docker:24-dind
+  before_script:
+    - echo "Logging into GitLab Container Registry..."
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+  script:
+    - echo "Rebuilding image for push..."
+    - docker build -t $IMAGE_NAME:$IMAGE_TAG -t $IMAGE_NAME:latest .
+    - echo "Pushing Docker image to registry..."
+    - docker push $IMAGE_NAME:$IMAGE_TAG
+    - docker push $IMAGE_NAME:latest
+    - echo "Image pushed successfully"
+    - echo "Image available at $IMAGE_NAME:$IMAGE_TAG"
+    - echo "Latest image at $IMAGE_NAME:latest"
+  only:
+    - main
+    - master
+    - develop
+    - tags
+
+# Optional: Security summary report
+security-summary:
+  stage: .post
+  image: alpine:latest
+  script:
+    - echo "========================================"
+    - echo "    SECURITY SCAN SUMMARY"
+    - echo "========================================"
+    - echo "✓ Dependency vulnerability check completed"
+    - echo "✓ Static code analysis completed"
+    - echo "✓ Secret detection scan completed"
+    - echo "✓ Container image scan completed"
+    - echo ""
+    - echo "Review the artifacts for detailed reports"
+    - echo "========================================"
+  when: always
+  only:
+    - branches
+    - merge_requests
+    - tags

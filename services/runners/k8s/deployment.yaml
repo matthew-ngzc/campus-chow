@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: runner-service
+  namespace: campuschow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: runner-service
+  template:
+    metadata:
+      labels:
+        app: runner-service
+    spec:
+      containers:
+        - name: runner-service
+          image: $CI_IMAGE
+          imagePullPolicy: Always
+          env:
+            - name: RABBITMQ_HOST
+              value: rabbitmq
+          ports:
+            - containerPort: 8080

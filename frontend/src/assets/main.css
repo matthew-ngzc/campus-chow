@@ -1,0 +1,93 @@
+@import './base.css';
+
+/* Additional overrides specific to main app */
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* Prevent horizontal scroll */
+    font-family: var(--font-body);
+}
+
+#app {
+    width: 100%;
+    padding: 0;
+}
+
+a,
+.green {
+    text-decoration: none;
+    color: var(--link-color);
+    transition: 0.4s;
+    padding: 3px;
+    font-family: var(--font-body);
+}
+
+@media (hover: hover) {
+    a:hover {
+        background-color: var(--link-hover-bg);
+    }
+}
+
+/* Global mobile responsive styles */
+@media (max-width: 768px) {
+
+    html,
+    body {
+        font-size: 16px;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    h2 {
+        font-size: 1.75rem;
+    }
+
+    h3 {
+        font-size: 1.5rem;
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+}
+
+@media (max-width: 480px) {
+
+    html,
+    body {
+        font-size: 14px;
+        overflow-x: hidden;
+    }
+
+    h1 {
+        font-size: 1.75rem;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+    }
+
+    h3 {
+        font-size: 1.25rem;
+    }
+
+    * {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    input,
+    textarea,
+    select {
+        font-size: 16px;
+        /* Prevents zoom on iOS */
+    }
+}

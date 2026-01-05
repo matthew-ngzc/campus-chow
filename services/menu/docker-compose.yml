@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: menu-postgres
+    environment:
+      POSTGRES_DB: menu
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - smunch-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Menu Service Application
+  menu-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: menu-service
+    environment:
+      # Database Configuration
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/menu
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: password
+      
+      # JPA Configuration
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+      
+      # Server Configuration
+      SERVER_PORT: 8083
+      
+      # JWT Configuration
+      SPRING_SECURITY_JWT_SECRET: 5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437
+      
+      # Spring Profile
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8083:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - smunch-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+# ===========================
+# SHARED NETWORK
+# This network allows Kong to communicate with this service
+# ===========================
+networks:
+  smunch-network:
+    external: true

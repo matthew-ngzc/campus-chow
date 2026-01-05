@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: runner-postgres
+    environment:
+      POSTGRES_DB: runner
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: $DB_PASSWORD
+    ports:
+      - "5438:5432"
+    volumes:
+      - runner_postgres_data:/var/lib/postgresql/data
+    networks:
+      - smunch-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  runner-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: runner-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://runner-postgres:5432/runner
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: $DB_PASSWORD
+      SERVER_PORT: 8088
+      SPRING_RABBITMQ_HOST: rabbitmq       
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: smunch
+      SPRING_RABBITMQ_PASSWORD: smunch
+      TZ: Asia/Singapore 
+    ports:
+      - "8088:8088"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - smunch-network
+    restart: unless-stopped
+
+volumes:
+  runner_postgres_data:
+    driver: local
+
+networks:
+  smunch-network:
+    external: true 

@@ -1,0 +1,19 @@
+# ===== Development Image =====
+FROM node:20
+WORKDIR /app
+
+# Install dependencies (including dev)
+COPY package*.json ./
+RUN npm install
+
+# Install nodemon globally (optional, but helpful)
+RUN npm install -g nodemon
+
+# Copy rest of your code (temporary; will be overridden by volume mount)
+COPY . .
+
+# Expose same port as your app
+EXPOSE 8084
+
+# Run in development mode (auto-reload)
+CMD ["npm", "run", "dev"]

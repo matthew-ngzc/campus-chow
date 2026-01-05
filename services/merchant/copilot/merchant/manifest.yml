@@ -1,0 +1,30 @@
+name: merchant
+type: Load Balanced Web Service
+
+cpu: 512
+memory: 1024
+
+platform: linux/x86_64
+
+image:
+  build: ./Dockerfile
+  port: 8082
+
+http:
+  path: '/'
+  healthcheck: '/api/health'
+
+environments:
+  staging:
+    count: 1
+    cpu: 512
+    memory: 1024
+    variables:
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://smunch-staging-db.cr0a0ow6q4tu.ap-southeast-2.rds.amazonaws.com:5432/merchant"
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: MySecurePass123
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
+      SERVER_PORT: "8082"
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_SECURITY_JWT_SECRET: "5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437"

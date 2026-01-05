@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+    <body style="font-family: Arial, sans-serif; color: #333;">
+        <div style="max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 10px; padding: 20px;">
+            <div style="text-align: center;">
+                <img src="https://ik.imagekit.io/campuschow/Campus%20Chow.png?updatedAt=1762239445198" alt="CampusChow Logo" width="120" />
+            </div>
+
+            <h2>Your Delivery Orders</h2>
+            <p>Hey Runner,</p>
+
+            <div th:each="order : ${orders}" 
+                style="border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 10px; background: #fafafa;">
+                <p><strong>Order ID:</strong> <span th:text="${order.orderId}"></span></p>
+                <p><strong>Building:</strong> <span th:text="${order.building}"></span></p>
+                <p><strong>Room Type:</strong> <span th:text="${order.roomType}"></span></p>
+                <p><strong>Room Number:</strong> <span th:text="${order.roomNumber}"></span></p>
+                <p><strong>Delivery Time:</strong> <span th:text="${order.deliveryTime}"></span></p>
+                <p><strong>Total Amount:</strong> $<span th:text="${order.totalAmountCents}"></span></p>
+            </div>
+
+
+            <p>Thank you for delivering these orders!</p>
+            <p>Regards,<br />The Campus Chow Team 💙</p>
+
+            <hr />
+            <small>Made for SMU students, by SMU students.</small>
+        </div>
+    </body>
+</html>

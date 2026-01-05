@@ -1,0 +1,158 @@
+/* Color Palette */
+:root {
+    --primary-color: #fcbc05;
+    --secondary-color: #fdfef7;
+    --tertiary-color: #fff2cc;
+    --text-color: #22201e;
+
+    /* Extended palette for UI elements */
+    --primary-dark: #e0a804;
+    --primary-light: #fdd456;
+
+    /* Typography */
+    --font-heading: 'Fredoka', sans-serif;
+    --font-body: 'Poppins', sans-serif;
+
+    --vt-c-white: #ffffff;
+    --vt-c-white-soft: #fdfef7;
+    --vt-c-white-mute: #fff2cc;
+
+    --vt-c-black: #22201e;
+    --vt-c-black-soft: #2d2b29;
+    --vt-c-black-mute: #3a3734;
+
+    --vt-c-accent: #fcbc05;
+
+    --vt-c-divider-light-1: rgba(34, 32, 30, 0.29);
+    --vt-c-divider-light-2: rgba(34, 32, 30, 0.12);
+    --vt-c-divider-dark-1: rgba(252, 188, 5, 0.65);
+    --vt-c-divider-dark-2: rgba(252, 188, 5, 0.48);
+
+    --vt-c-text-light-1: var(--text-color);
+    --vt-c-text-light-2: rgba(34, 32, 30, 0.66);
+    --vt-c-text-dark-1: var(--vt-c-white);
+    --vt-c-text-dark-2: rgba(253, 254, 247, 0.64);
+}
+
+/* semantic color variables for this project */
+:root {
+    --color-background: var(--secondary-color);
+    --color-background-soft: var(--vt-c-white-soft);
+    --color-background-mute: var(--vt-c-white-mute);
+
+    --color-border: var(--vt-c-divider-light-2);
+    --color-border-hover: var(--vt-c-divider-light-1);
+
+    --color-heading: var(--text-color);
+    --color-text: var(--text-color);
+
+    --section-gap: 160px;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Keep light theme even in dark mode preference */
+        --color-background: var(--secondary-color);
+        --color-background-soft: var(--vt-c-white-soft);
+        --color-background-mute: var(--vt-c-white-mute);
+
+        --color-border: var(--vt-c-divider-light-2);
+        --color-border-hover: var(--vt-c-divider-light-1);
+
+        --color-heading: var(--text-color);
+        --color-text: var(--text-color);
+    }
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+}
+
+body {
+    min-height: 100vh;
+    color: var(--color-text);
+    background: var(--color-background);
+    transition:
+        color 0.5s,
+        background-color 0.5s;
+    line-height: 1.6;
+    font-family: var(--font-body);
+    font-size: 15px;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Apply Fredoka to all headings */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    color: var(--color-heading);
+    line-height: 1.2;
+}
+
+/* Specific heading sizes */
+h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+h2 {
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+h3 {
+    font-size: 1.75rem;
+    font-weight: 600;
+}
+
+h4 {
+    font-size: 1.5rem;
+    font-weight: 500;
+}
+
+h5 {
+    font-size: 1.25rem;
+    font-weight: 500;
+}
+
+h6 {
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+/* Body text uses Poppins (already set in body) */
+p,
+span,
+a,
+button,
+input,
+textarea,
+select {
+    font-family: var(--font-body);
+}
+
+section,
+section.section {
+    width: 100%;
+    padding: 4rem 3rem;
+    background-color: var(--secondary-color);
+}
+
+/* Optional: Add horizontal padding for smaller screens */
+@media (max-width: 768px) {
+    section,
+    section.section {
+        padding-top: 3rem;
+        padding-bottom: 3rem;
+    }
+}

@@ -1,0 +1,6 @@
+# API Configuration
+# Update this URL to match your Kong API Gateway URL
+VITE_API_URL=http://localhost:8000
+
+# For production, you might use:
+# VUE_APP_API_URL=https://your-domain.com
